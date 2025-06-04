@@ -12,7 +12,7 @@ import SwiftData
 struct MemoAppApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Note.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +25,7 @@ struct MemoAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NoteListView()
         }
         .modelContainer(sharedModelContainer)
     }
