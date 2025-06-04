@@ -1,130 +1,230 @@
 import SwiftUI
-import WebKit
-import Foundation
 
-struct MarkdownPreviewView: UIViewRepresentable {
+struct MarkdownPreviewView: View {
     let markdown: String
     
-    func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.navigationDelegate = context.coordinator
-        return webView
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(processedElements, id: \.id) { element in
+                    element.view
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color(.systemBackground))
     }
     
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let html = convertMarkdownToHTML(markdown)
-        let styledHTML = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    line-height: 1.6;
-                    margin: 16px;
-                    color: \(colorScheme == .dark ? "#ffffff" : "#000000");
-                    background-color: \(colorScheme == .dark ? "#1c1c1e" : "#ffffff");
-                }
-                h1, h2, h3, h4, h5, h6 {
-                    margin-top: 24px;
-                    margin-bottom: 16px;
-                }
-                p {
-                    margin-bottom: 16px;
-                }
-                code {
-                    background-color: \(colorScheme == .dark ? "#2c2c2e" : "#f6f8fa");
-                    padding: 2px 4px;
-                    border-radius: 4px;
-                    font-family: 'SF Mono', Monaco, Consolas, monospace;
-                }
-                pre {
-                    background-color: \(colorScheme == .dark ? "#2c2c2e" : "#f6f8fa");
-                    padding: 16px;
-                    border-radius: 8px;
-                    overflow-x: auto;
-                }
-                blockquote {
-                    border-left: 4px solid \(colorScheme == .dark ? "#444446" : "#d1d5da");
-                    margin: 0;
-                    padding-left: 16px;
-                    color: \(colorScheme == .dark ? "#8e8e93" : "#6a737d");
-                }
-            </style>
-        </head>
-        <body>
-            \(html)
-        </body>
-        </html>
-        """
-        webView.loadHTMLString(styledHTML, baseURL: nil)
+    private var processedElements: [MarkdownElement] {
+        parseMarkdown(markdown)
     }
+}
+
+struct MarkdownElement: Identifiable {
+    let id = UUID()
+    let view: AnyView
+}
+
+private func parseMarkdown(_ text: String) -> [MarkdownElement] {
+    let lines = text.components(separatedBy: .newlines)
+    var elements: [MarkdownElement] = []
+    var currentCodeBlock: [String] = []
+    var inCodeBlock = false
     
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-    
-    @Environment(\.colorScheme) private var colorScheme
-    
-    class Coordinator: NSObject, WKNavigationDelegate {
-        // WebViewの設定やナビゲーション処理
-    }
-    
-    private func convertMarkdownToHTML(_ markdown: String) -> String {
-        var html = markdown
-        
-        do {
-            // NSStringに変換してUTF-16ベースで処理
-            var nsString = html as NSString
-            
-            // 見出し（NSRegularExpressionを使用）
-            let h1Regex = try NSRegularExpression(pattern: "^# (.+)$", options: [.anchorsMatchLines])
-            html = h1Regex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<h1>$1</h1>")
-            nsString = html as NSString
-            
-            let h2Regex = try NSRegularExpression(pattern: "^## (.+)$", options: [.anchorsMatchLines])
-            html = h2Regex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<h2>$1</h2>")
-            nsString = html as NSString
-            
-            let h3Regex = try NSRegularExpression(pattern: "^### (.+)$", options: [.anchorsMatchLines])
-            html = h3Regex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<h3>$1</h3>")
-            nsString = html as NSString
-            
-            // 太字
-            let boldRegex = try NSRegularExpression(pattern: "\\*\\*(.+?)\\*\\*", options: [])
-            html = boldRegex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<strong>$1</strong>")
-            nsString = html as NSString
-            
-            // イタリック（太字以外の単一アスタリスク）
-            let italicRegex = try NSRegularExpression(pattern: "(?<!\\*)\\*([^\\*]+?)\\*(?!\\*)", options: [])
-            html = italicRegex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<em>$1</em>")
-            nsString = html as NSString
-            
-            // インラインコード
-            let codeRegex = try NSRegularExpression(pattern: "`([^`]+?)`", options: [])
-            html = codeRegex.stringByReplacingMatches(in: html, options: [], range: NSRange(location: 0, length: nsString.length), withTemplate: "<code>$1</code>")
-            
-        } catch {
-            print("正規表現エラー: \(error)")
+    for line in lines {
+        if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+            if inCodeBlock {
+                // コードブロック終了
+                let codeContent = currentCodeBlock.joined(separator: "\n")
+                elements.append(MarkdownElement(view: AnyView(CodeBlockView(code: codeContent))))
+                currentCodeBlock.removeAll()
+                inCodeBlock = false
+            } else {
+                // コードブロック開始
+                inCodeBlock = true
+            }
+            continue
         }
         
-        // 段落の処理（見出しでない行を<p>タグで囲む）
-        let lines = html.components(separatedBy: .newlines)
-        let processedLines = lines.map { line -> String in
-            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-            if trimmedLine.isEmpty {
-                return "<br>"
-            } else if trimmedLine.hasPrefix("<h") || trimmedLine.contains("<h") {
-                return trimmedLine
-            } else {
-                return "<p>\(trimmedLine)</p>"
+        if inCodeBlock {
+            currentCodeBlock.append(line)
+            continue
+        }
+        
+        // 空行の処理
+        if line.trimmingCharacters(in: .whitespaces).isEmpty {
+            elements.append(MarkdownElement(view: AnyView(Spacer().frame(height: 8))))
+            continue
+        }
+        
+        // ヘッダーの処理
+        if line.hasPrefix("### ") {
+            let text = String(line.dropFirst(4))
+            elements.append(MarkdownElement(view: AnyView(
+                Text(text)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            )))
+        } else if line.hasPrefix("## ") {
+            let text = String(line.dropFirst(3))
+            elements.append(MarkdownElement(view: AnyView(
+                Text(text)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            )))
+        } else if line.hasPrefix("# ") {
+            let text = String(line.dropFirst(2))
+            elements.append(MarkdownElement(view: AnyView(
+                Text(text)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            )))
+        }
+        // 引用の処理
+        else if line.hasPrefix("> ") {
+            let text = String(line.dropFirst(2))
+            elements.append(MarkdownElement(view: AnyView(
+                HStack(alignment: .top, spacing: 8) {
+                    Rectangle()
+                        .frame(width: 3)
+                        .foregroundColor(.blue)
+                    Text(text)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+                .padding(.leading)
+            )))
+        }
+        // リストの処理
+        else if line.hasPrefix("- ") || line.hasPrefix("* ") {
+            let text = String(line.dropFirst(2))
+            elements.append(MarkdownElement(view: AnyView(
+                HStack(alignment: .top, spacing: 8) {
+                    Text("•")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    Text(formatInlineMarkdown(text))
+                        .font(.body)
+                }
+                .padding(.leading)
+            )))
+        }
+        // 番号付きリストの処理
+        else if line.matches(regex: "^\\d+\\. ") {
+            let components = line.split(separator: " ", maxSplits: 1)
+            if components.count == 2 {
+                let number = components[0]
+                let text = String(components[1])
+                elements.append(MarkdownElement(view: AnyView(
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(String(number))
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        Text(formatInlineMarkdown(text))
+                            .font(.body)
+                    }
+                    .padding(.leading)
+                )))
             }
         }
-        
-        html = processedLines.joined(separator: "\n")
-        
-        return html
+        // 水平線の処理
+        else if line.trimmingCharacters(in: .whitespaces) == "---" {
+            elements.append(MarkdownElement(view: AnyView(
+                Divider()
+                    .padding(.vertical, 8)
+            )))
+        }
+        // 通常のテキスト
+        else {
+            elements.append(MarkdownElement(view: AnyView(
+                Text(formatInlineMarkdown(line))
+                    .font(.body)
+                    .fixedSize(horizontal: false, vertical: true)
+            )))
+        }
+    }
+    
+    return elements
+}
+
+private func formatInlineMarkdown(_ text: String) -> AttributedString {
+    var attributed = AttributedString(text)
+    
+    // 太字の処理 (**text**)
+    let boldPattern = "\\*\\*(.*?)\\*\\*"
+    if let regex = try? NSRegularExpression(pattern: boldPattern) {
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        for match in matches.reversed() {
+            if let range = Range(match.range, in: text) {
+                let boldText = String(text[range]).replacingOccurrences(of: "**", with: "")
+                if let attrRange = attributed.range(of: String(text[range])) {
+                    attributed[attrRange].font = .body.bold()
+                    attributed.replaceSubrange(attrRange, with: AttributedString(boldText))
+                }
+            }
+        }
+    }
+    
+    // 斜体の処理 (*text*)
+    let italicPattern = "\\*(.*?)\\*"
+    if let regex = try? NSRegularExpression(pattern: italicPattern) {
+        let matches = regex.matches(in: attributed.description, range: NSRange(attributed.description.startIndex..., in: attributed.description))
+        for match in matches.reversed() {
+            if let range = Range(match.range, in: attributed.description) {
+                let italicText = String(attributed.description[range]).replacingOccurrences(of: "*", with: "")
+                if let attrRange = attributed.range(of: String(attributed.description[range])) {
+                    attributed[attrRange].font = .body.italic()
+                    attributed.replaceSubrange(attrRange, with: AttributedString(italicText))
+                }
+            }
+        }
+    }
+    
+    // インラインコードの処理 (`code`)
+    let codePattern = "`(.*?)`"
+    if let regex = try? NSRegularExpression(pattern: codePattern) {
+        let matches = regex.matches(in: attributed.description, range: NSRange(attributed.description.startIndex..., in: attributed.description))
+        for match in matches.reversed() {
+            if let range = Range(match.range, in: attributed.description) {
+                let codeText = String(attributed.description[range]).replacingOccurrences(of: "`", with: "")
+                if let attrRange = attributed.range(of: String(attributed.description[range])) {
+                    attributed[attrRange].font = .system(.body, design: .monospaced)
+                    attributed[attrRange].backgroundColor = .gray.opacity(0.2)
+                    attributed.replaceSubrange(attrRange, with: AttributedString(codeText))
+                }
+            }
+        }
+    }
+    
+    return attributed
+}
+
+struct CodeBlockView: View {
+    let code: String
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            Text(code)
+                .font(.system(.body, design: .monospaced))
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(.systemGray4), lineWidth: 1)
+        )
+    }
+}
+
+extension String {
+    func matches(regex: String) -> Bool {
+        return self.range(of: regex, options: .regularExpression, range: nil, locale: nil) != nil
     }
 } 

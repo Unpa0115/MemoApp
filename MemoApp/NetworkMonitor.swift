@@ -1,33 +1,25 @@
 import Foundation
 import Network
-import Combine
 
+@MainActor
 class NetworkMonitor: ObservableObject {
     static let shared = NetworkMonitor()
     
-    @Published var isConnected: Bool = false
+    @Published var isConnected = true
     
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "NetworkMonitor")
+    private let queue = DispatchQueue.global(qos: .background)
     
     private init() {
-        startMonitoring()
-    }
-    
-    deinit {
-        stopMonitoring()
-    }
-    
-    private func startMonitoring() {
         monitor.pathUpdateHandler = { [weak self] path in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.isConnected = path.status == .satisfied
             }
         }
         monitor.start(queue: queue)
     }
     
-    private func stopMonitoring() {
+    deinit {
         monitor.cancel()
     }
 } 

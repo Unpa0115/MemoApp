@@ -10,18 +10,28 @@ class Note {
     var createdAt: Date
     var updatedAt: Date
     var isDraft: Bool
+    
+    // タグとの多対多リレーション
+    @Relationship var tags: [Tag]
+    
+    // カテゴリとの多対多リレーション（複数のカテゴリに所属可能）
+    @Relationship var categories: [Category]
 
     init(content: String = "",
          title: String? = nil,
          createdAt: Date = .now,
          updatedAt: Date = .now,
-         isDraft: Bool = true) {
+         isDraft: Bool = true,
+         tags: [Tag] = [],
+         categories: [Category] = []) {
         self.id = UUID()
         self.content = content
         self.title = title
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isDraft = isDraft
+        self.tags = tags
+        self.categories = categories
     }
 
     /// 先頭行からタイトルを自動抽出

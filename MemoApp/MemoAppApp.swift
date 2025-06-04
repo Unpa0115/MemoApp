@@ -13,6 +13,8 @@ struct MemoAppApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Note.self,
+            Tag.self,
+            Category.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +27,7 @@ struct MemoAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NoteListView()
+            MainTabView()
         }
         .modelContainer(sharedModelContainer)
     }
