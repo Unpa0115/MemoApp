@@ -57,6 +57,9 @@ struct NoteListView: View {
         context.insert(newNote)
         do {
             try context.save()
+            
+            // 目標への自動連携
+            GoalAutoLinkService.shared.autoLinkNoteToGoals(newNote, context: context)
         } catch {
             print("Failed to save new note: \(error)")
         }

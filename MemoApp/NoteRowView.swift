@@ -12,6 +12,18 @@ struct NoteRowView: View {
                 
                 Spacer()
                 
+                // リマインダーアイコン
+                if note.hasReminder == true {
+                    Button(action: {
+                        // リマインダー詳細をポップアップ表示
+                    }) {
+                        Image(systemName: "bell.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 if note.isDraft {
                     Image(systemName: "pencil")
                         .foregroundColor(.orange)

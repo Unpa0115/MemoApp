@@ -15,6 +15,18 @@ struct MainTabView: View {
                     Label("検索", systemImage: "magnifyingglass")
                 }
             
+            // ダッシュボードタブ
+            DashboardView()
+                .tabItem {
+                    Label("ダッシュボード", systemImage: "chart.bar.fill")
+                }
+            
+            // 目標管理タブ
+            GoalListView()
+                .tabItem {
+                    Label("目標", systemImage: "target")
+                }
+            
             // Substackタブ
             SubstackMainView()
                 .tabItem {

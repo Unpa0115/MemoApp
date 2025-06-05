@@ -10,6 +10,9 @@ import SwiftData
 
 @main
 struct MemoAppApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var navRouter = NavigationRouter()
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Note.self,
@@ -19,6 +22,8 @@ struct MemoAppApp: App {
             SMTPService.self,
             ScheduledPost.self,
             SentLog.self,
+            Goal.self,
+            LinkedNote.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -37,6 +42,13 @@ struct MemoAppApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environmentObject(navRouter)
+                .onReceive(NotificationCenter.default.publisher(
+                    for: .didReceiveNoteNotification
+                )) { notification in
+                    guard let noteID = notification.userInfo?["noteID"] as? UUID else { return }
+                    navRouter.navigateToNoteEditor(id: noteID)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

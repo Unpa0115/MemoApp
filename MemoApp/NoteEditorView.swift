@@ -242,6 +242,23 @@ struct NoteEditorView: View {
                 
                 Divider()
                 
+                // リマインダーセクション
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("リマインダー")
+                        .font(.headline)
+                    
+                    ReminderSectionView(note: note)
+                }
+                
+                Divider()
+                
+                // AIタスク提案セクション
+                VStack(alignment: .leading, spacing: 8) {
+                    AITaskSuggestionView(note: note)
+                }
+                
+                Divider()
+                
                 // メタ情報
                 VStack(alignment: .leading, spacing: 8) {
                     Text("メタ情報")
@@ -436,6 +453,13 @@ struct NoteEditorView: View {
         
         do {
             try context.save()
+            
+            // リマインダーのスケジューリング
+            ReminderService.shared.scheduleReminderIfNeeded(for: note)
+            
+            // 目標への自動連携
+            GoalAutoLinkService.shared.autoLinkNoteToGoals(note, context: context)
+            
             autoSaveStatus = .success
             
             // 1秒後にステータスをリセット
@@ -532,6 +556,12 @@ struct NoteEditorView: View {
     private func saveNote() {
         do {
             try context.save()
+            
+            // リマインダーのスケジューリング
+            ReminderService.shared.scheduleReminderIfNeeded(for: note)
+            
+            // 目標への自動連携
+            GoalAutoLinkService.shared.autoLinkNoteToGoals(note, context: context)
         } catch {
             print("Failed to save note: \(error)")
         }

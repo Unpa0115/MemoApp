@@ -2,7 +2,6 @@ import SwiftData
 import Foundation
 
 @Model
-// @Observable
 class Note {
     @Attribute(.unique) var id: UUID
     var content: String
@@ -10,6 +9,12 @@ class Note {
     var createdAt: Date
     var updatedAt: Date
     var isDraft: Bool
+    
+    // ── リマインダー機能用プロパティ ──
+    var reminderDate: Date?            // ユーザーが設定したリマインダー日時
+    var hasReminder: Bool?             // リマインダー設定フラグ
+    // AI タスク抽出用に、一時的に生成されたタスクを保持する配列
+    @Transient var aiSuggestedTasks: [AITask] = []
     
     // タグとの多対多リレーション
     @Relationship var tags: [Tag]
@@ -22,6 +27,8 @@ class Note {
          createdAt: Date = .now,
          updatedAt: Date = .now,
          isDraft: Bool = true,
+         reminderDate: Date? = nil,
+         hasReminder: Bool? = false,
          tags: [Tag] = [],
          categories: [Category] = []) {
         self.id = UUID()
@@ -30,6 +37,8 @@ class Note {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isDraft = isDraft
+        self.reminderDate = reminderDate
+        self.hasReminder = hasReminder
         self.tags = tags
         self.categories = categories
     }
