@@ -15,6 +15,12 @@ struct MainTabView: View {
                     Label("検索", systemImage: "magnifyingglass")
                 }
             
+            // Substackタブ
+            SubstackMainView()
+                .tabItem {
+                    Label("Substack", systemImage: "paperplane.circle")
+                }
+            
             // カテゴリ管理タブ
             CategoryListView()
                 .tabItem {

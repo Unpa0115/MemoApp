@@ -15,6 +15,10 @@ struct MemoAppApp: App {
             Note.self,
             Tag.self,
             Category.self,
+            SubstackAccount.self,
+            SMTPService.self,
+            ScheduledPost.self,
+            SentLog.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -24,6 +28,11 @@ struct MemoAppApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+
+    init() {
+        // BGTaskSchedulerの登録をアプリ起動時に行う
+        SubstackScheduleService().initializeBackgroundTasks()
+    }
 
     var body: some Scene {
         WindowGroup {
