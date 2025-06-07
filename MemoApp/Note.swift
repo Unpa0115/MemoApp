@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-class Note {
+class Note: @unchecked Sendable {
     @Attribute(.unique) var id: UUID
     var content: String
     var title: String?

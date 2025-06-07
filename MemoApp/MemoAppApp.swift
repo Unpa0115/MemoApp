@@ -24,6 +24,8 @@ struct MemoAppApp: App {
             SentLog.self,
             Goal.self,
             LinkedNote.self,
+            Conversation.self,
+            Message.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

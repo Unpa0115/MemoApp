@@ -24,6 +24,11 @@ struct NoteEditorView: View {
     // カテゴリ関連
     @State private var showingCategorySelection = false
     
+    // AIアシスタント関連
+    @State private var showAISheet = false
+    @State private var showRewriteSheet = false
+    @State private var showQualityCheckSheet = false
+    
     private let contentSubject = PassthroughSubject<String, Never>()
     @State private var cancellables = Set<AnyCancellable>()
     
@@ -75,6 +80,28 @@ struct NoteEditorView: View {
                         .font(.caption)
                     
                     if selectedTab == .editor {
+                        // AIアシスタントボタン
+                        Menu {
+                            Button("AIアシスタント") {
+                                showAISheet = true
+                            }
+                            Divider()
+                            Button("翻訳・言い換え") {
+                                showRewriteSheet = true
+                            }
+                            Button("品質チェック") {
+                                showQualityCheckSheet = true
+                            }
+                            Divider()
+                            NavigationLink("会話型メモ") {
+                                ChatNoteEditorView(note: note)
+                            }
+                        } label: {
+                            Image(systemName: "brain")
+                                .foregroundColor(.blue)
+                        }
+                        .accessibilityLabel("AIアシスタント")
+                        
                         // リアルタイムMarkdownトグルボタン
                         Button(action: toggleRichMode) {
                             Image(systemName: isRichMode ? "textformat.abc.dottedunderline" : "textformat")
@@ -122,6 +149,15 @@ struct NoteEditorView: View {
         }
         .sheet(isPresented: $showingCategorySelection) {
             CategorySelectionView(selectedCategories: $note.categories)
+        }
+        .sheet(isPresented: $showAISheet) {
+            AISheetView(note: note, isPresented: $showAISheet)
+        }
+        .sheet(isPresented: $showRewriteSheet) {
+            RewriteView(note: note, isPresented: $showRewriteSheet)
+        }
+        .sheet(isPresented: $showQualityCheckSheet) {
+            QualityCheckView(note: note, isPresented: $showQualityCheckSheet)
         }
     }
     
@@ -319,9 +355,10 @@ struct NoteEditorView: View {
                 }
                 .padding()
             } else {
-                // 通常のテキストエディタ
+                // 通常のテキストエディタ（Apple Intelligence Writing Tools対応）
                 TextEditor(text: $content)
                     .font(.body)
+                    .writingToolsBehavior(.complete) // Apple Intelligence機能を有効化
                     .onChange(of: content) { oldText, newText in
                         autoSaveStatus = .saving
                         contentSubject.send(newText)

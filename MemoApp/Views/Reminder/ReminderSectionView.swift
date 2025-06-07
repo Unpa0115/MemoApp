@@ -23,7 +23,7 @@ struct ReminderSectionView: View {
             .toggleStyle(SwitchToggleStyle())
             
             // 日時選択フィールド
-            if note.hasReminder == true {
+            if note.hasReminder ?? false {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("リマインダー日時")
                         .font(.subheadline)

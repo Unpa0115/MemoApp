@@ -38,6 +38,12 @@ struct MainTabView: View {
                 .tabItem {
                     Label("カテゴリ", systemImage: "folder")
                 }
+            
+            // 設定タブ
+            SettingsView()
+                .tabItem {
+                    Label("設定", systemImage: "gearshape")
+                }
         }
     }
 } 

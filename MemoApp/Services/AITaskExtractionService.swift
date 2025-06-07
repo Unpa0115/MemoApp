@@ -39,11 +39,13 @@ class AITaskExtractionService: ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             let aiResponse = try decoder.decode(AIResponse.self, from: data)
             
+            let tasks = aiResponse.tasks.map { AITask(
+                description: $0.description,
+                suggestedDate: $0.suggestedDate
+            ) }
+            
             await MainActor.run {
-                note.aiSuggestedTasks = aiResponse.tasks.map { AITask(
-                    description: $0.description,
-                    suggestedDate: $0.suggestedDate
-                ) }
+                note.aiSuggestedTasks = tasks
                 // View が aiSuggestedTasks の変更を検知して再描画される
             }
         } catch {
